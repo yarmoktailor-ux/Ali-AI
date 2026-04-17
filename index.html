@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ali AI - منصة الذكاء الاصطناعي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { cairo: ['Cairo', 'sans-serif'], space: ['Space Grotesk', 'sans-serif'] },
+                    colors: { dark: '#050505', brand: { 400: '#4ade80', 500: '#22c55e', 600: '#16a34a' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Cairo', sans-serif; background: #050505; color: #fff; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #22c55e33; border-radius: 3px; }
+
+        #three-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
+        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.06); }
+        .glass-strong { background: rgba(5,5,5,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .glass-card { background: rgba(255,255,255,0.02); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+
+        .gradient-text { background: linear-gradient(to left, #4ade80, #22c55e, #059669); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+        .btn-primary { background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 0 30px rgba(34,197,94,0.3); transition: all 0.3s; }
+        .btn-primary:hover { box-shadow: 0 0 50px rgba(34,197,94,0.5); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-outline { border: 1px solid rgba(34,197,94,0.4); transition: all 0.3s; }
+        .btn-outline:hover { background: rgba(34,197,94,0.1); border-color: #22c55e; }
+
+        .btn-ghost { transition: all 0.2s; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.05); }
+
+        .card-hover { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-6px); box-shadow: 0 0 40px rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.25); }
+
+        .input-field { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px 16px; color: #fff; font-family: 'Cairo'; font-size: 14px; outline: none; transition: all 0.3s; width: 100%; }
+        .input-field:focus { border-color: #22c55e; box-shadow: 0 0 20px rgba(34,197,94,0.1); }
+        .input-field::placeholder { color: #4b5563; }
+        .input-field.error { border-color: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,0.1); }
+
+        .input-icon { position: relative; }
+        .input-icon .icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #4b5563; pointer-events: none; transition: color 0.3s; }
+        .input-icon .input-field { padding-right: 44px; }
+        .input-icon:focus-within .icon { color: #22c55e; }
+
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
+        @keyframes pulse-glow { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.25; } }
+        @keyframes blink { 0%, 50% { border-color: #22c55e; } 51%, 100% { border-color: transparent; } }
+        @keyframes fade-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes scan-line { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes progress-fill { from { width: 0%; } }
+        @keyframes slide-in-right { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes scale-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes dot-pulse { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+        .animate-fade-up { animation: fade-up 0.6s ease-out forwards; }
+        .animate-scale-in { animation: scale-in 0.4s ease-out forwards; }
+        .animate-slide-in { animation: slide-in-right 0.5s ease-out forwards; }
+
+        .typing-cursor { border-left: 3px solid #22c55e; animation: blink 0.8s step-end infinite; padding-left: 4px; }
+        .shimmer-bg { background: linear-gradient(90deg, transparent, rgba(34,197,94,0.06), transparent); background-size: 200% 100%; animation: shimmer 3s infinite; }
+        .scan-effect { position: relative; overflow: hidden; }
+        .scan-effect::after { content: ''; position: absolute; left: 0; width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #22c55e, transparent); animation: scan-line 4s linear infinite; }
+
+        .grid-bg { background-image: linear-gradient(rgba(34,197,94,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(34,197,94,0.02) 1px, transparent 1px); background-size: 60px 60px; }
+        .hero-glow { position: absolute; width: 500px; height: 500px; border-radius: 50%; filter: blur(120px); opacity: 0.12; pointer-events: none; }
+
+        .scroll-reveal { opacity: 0; transform: translateY(30px); transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+        .scroll-reveal.visible { opacity: 1; transform: translateY(0); }
+
+        .tech-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 9999px; font-size: 11px; font-weight: 600; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); }
+
+        .nav-link { position: relative; padding: 4px 0; }
+        .nav-link::after { content: ''; position: absolute; bottom: 0; right: 0; width: 0; height: 2px; background: #22c55e; transition: width 0.3s; }
+        .nav-link:hover::after { width: 100%; }
+
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); padding: 12px 24px; border-radius: 12px; font-size: 13px; font-weight: 500; z-index: 10000; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(12px); max-width: 90vw; text-align: center; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast-success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; }
+        .toast-error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; }
+        .toast-info { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content { background: #0a0a0a; border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; max-width: 440px; width: 100%; transform: scale(0.9) translateY(20px); transition: transform 0.3s; max-height: 90vh; overflow-y: auto; }
+        .modal-overlay.active .modal-content { transform: scale(1) translateY(0); }
+
+        .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 500; color: #6b7280; transition: all 0.2s; cursor: pointer; }
+        .sidebar-link:hover { background: rgba(255,255,255,0.03); color: #d1d5db; }
+        .sidebar-link.active { background: rgba(34,197,94,0.08); color: #4ade80; border: 1px solid rgba(34,197,94,0.15); }
+        .sidebar-link.active i { color: #22c55e; }
+
+        .project-card { transition: all 0.3s; cursor: pointer; }
+        .project-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); border-color: rgba(34,197,94,0.2); }
+
+        .step-indicator { display: flex; align-items: center; gap: 8px; }
+        .step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; transition: all 0.3s; }
+        .step-dot.completed { background: #22c55e; color: #000; }
+        .step-dot.current { background: rgba(34,197,94,0.15); color: #4ade80; border: 2px solid #22c55e; }
+        .step-dot.pending { background: rgba(255,255,255,0.05); color: #4b5563; }
+        .step-line { width: 40px; height: 2px; background: rgba(255,255,255,0.06); transition: background 0.3s; }
+        .step-line.completed { background: #22c55e; }
+
+        .password-toggle { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #4b5563; transition: color 0.3s; }
+        .password-toggle:hover { color: #9ca3af; }
+
+        .loading-dots span { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #22c55e; margin: 0 2px; animation: dot-pulse 1.4s infinite ease-in-out both; }
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        .strength-bar { height: 3px; border-radius: 2px; transition: all 0.3s; }
+        .strength-weak { width: 33%; background: #ef4444; }
+        .strength-medium { width: 66%; background: #eab308; }
+        .strength-strong { width: 100%; background: #22c55e; }
+
+        @media (max-width: 768px) {
+            .hero-glow { width: 250px; height: 250px; }
+            .sidebar-desktop { display: none !important; }
+        }
+        @media (min-width: 769px) {
+            .sidebar-mobile-overlay { display: none !important; }
+            .mobile-bottom-nav { display: none !important; }
+        }
+    </style>
+</head>
+<body class="grid-bg">
+
+<canvas id="three-canvas"></canvas>
+<div id="toast" class="toast toast-success">✓ تم بنجاح</div>
+
+<!-- ==================== LANDING PAGE ==================== -->
+<div id="landing-page">
+    <!-- NAV -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-500">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-3" onclick="event.preventDefault()">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                </div>
+                <span class="text-xl font-bold">Ali <span class="gradient-text">AI</span></span>
+            </a>
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#features" class="nav-link text-sm text-gray-400 hover:text-white transition-colors">المميزات</a>
+                <a href="#how-it-works" class="nav-link text-sm text-gray-400 hover:text-white transition-colors">آلية العمل</a>
+                <a href="#templates" class="nav-link text-sm text-gray-400 hover:text-white transition-colors">القوالب</a>
+                <a href="#pricing" class="nav-link text-sm text-gray-400 hover:text-white transition-colors">الأسعار</a>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="openModal('login')" class="text-sm text-gray-400 hover:text-white transition-colors px-4 py-2">تسجيل الدخول</button>
+                <button onclick="openModal('register')" class="btn-primary text-sm font-semibold px-6 py-2.5 rounded-xl text-white">ابدأ مجاناً</button>
+                <button class="md:hidden text-gray-400" onclick="document.getElementById('mobile-landing-menu').classList.toggle('hidden')"><i data-lucide="menu" class="w-6 h-6"></i></button>
+            </div>
+        </div>
+        <div id="mobile-landing-menu" class="hidden md:hidden glass-strong border-t border-white/5 px-6 py-4 flex flex-col gap-3">
+            <a href="#features" class="text-gray-400 hover:text-white py-2 text-sm">المميزات</a>
+            <a href="#how-it-works" class="text-gray-400 hover:text-white py-2 text-sm">آلية العمل</a>
+            <a href="#templates" class="text-gray-400 hover:text-white py-2 text-sm">القوالب</a>
+            <a href="#pricing" class="text-gray-400 hover:text-white py-2 text-sm">الأسعار</a>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="relative min-h-screen flex items-center justify-center pt-20 pb-20 overflow-hidden">
+        <div class="hero-glow bg-brand-500 top-1/4 right-1/4 animate-pulse-glow"></div>
+        <div class="hero-glow bg-emerald-700 bottom-1/4 left-1/4 animate-pulse-glow" style="animation-delay:1.5s"></div>
+        <div class="relative z-10 max-w-5xl mx-auto px-6 text-center">
+            <div class="inline-flex items-center gap-2 glass rounded-full px-5 py-2 mb-8 animate-fade-up" style="animation-delay:0.1s">
+                <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                <span class="text-xs font-medium text-gray-400">مدعوم بأحدث تقنيات الذكاء الاصطناعي</span>
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-500"></i>
+            </div>
+            <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight mb-6 animate-fade-up" style="animation-delay:0.2s">
+                حوّل أفكارك إلى<br><span class="gradient-text">مشاريع رقمية</span> بلحظات
+            </h1>
+            <div class="h-10 mb-8 animate-fade-up" style="animation-delay:0.35s">
+                <p class="text-gray-400 text-lg md:text-xl"><span id="typing-text" class="typing-cursor"></span></p>
+            </div>
+            <p class="text-gray-500 text-base md:text-lg max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-up" style="animation-delay:0.45s">
+                منصة متكاملة تعتمد على الذكاء الاصطناعي لإنشاء المواقع والتطبيقات والمتاجر الإلكترونية بشكل تلقائي — بدون أي خبرة برمجية
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14 animate-fade-up" style="animation-delay:0.55s">
+                <button onclick="openModal('register')" class="btn-primary px-8 py-4 rounded-2xl text-base font-bold text-white flex items-center gap-2 w-full sm:w-auto justify-center">
+                    <i data-lucide="rocket" class="w-5 h-5"></i> ابدأ مشروعك الآن
+                </button>
+                <button onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})" class="btn-outline px-8 py-4 rounded-2xl text-base font-semibold text-gray-300 flex items-center gap-2 w-full sm:w-auto justify-center">
+                    <i data-lucide="play-circle" class="w-5 h-5"></i> شاهد كيف تعمل
+                </button>
+            </div>
+            <!-- AI Demo -->
+            <div class="max-w-2xl mx-auto animate-fade-up" style="animation-delay:0.65s">
+                <div class="glass rounded-2xl p-2 flex items-center gap-3">
+                    <div class="flex-1 flex items-center gap-3 px-4">
+                        <i data-lucide="brain" class="w-5 h-5 text-brand-500 flex-shrink-0"></i>
+                        <input id="demo-input" type="text" placeholder="صِف فكرتك... مثال: متجر إلكتروني لبيع العطور" class="w-full bg-transparent border-none outline-none text-white placeholder-gray-600 text-sm py-3 font-cairo">
+                    </div>
+                    <button id="demo-btn" onclick="runDemo()" class="btn-primary px-6 py-3 rounded-xl text-sm font-bold text-white flex-shrink-0 flex items-center gap-2">
+                        <i data-lucide="wand-2" class="w-4 h-4"></i> أنشئ
+                    </button>
+                </div>
+                <div id="demo-result" class="hidden mt-4 glass rounded-2xl p-5 text-right"></div>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-3 mt-12 animate-fade-up" style="animation-delay:0.75s">
+                <span class="tech-badge"><i data-lucide="shield-check" class="w-3 h-3 text-brand-500"></i> مشفّر بالكامل</span>
+                <span class="tech-badge"><i data-lucide="zap" class="w-3 h-3 text-yellow-500"></i> سرعة فائقة</span>
+                <span class="tech-badge"><i data-lucide="globe" class="w-3 h-3 text-blue-400"></i> دعم عربي كامل</span>
+                <span class="tech-badge"><i data-lucide="cloud" class="w-3 h-3 text-purple-400"></i> نشر سحابي</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="relative z-10 py-16">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="glass rounded-3xl p-8 md:p-12 grid grid-cols-2 md:grid-cols-4 gap-8 scroll-reveal">
+                <div class="text-center"><div class="text-3xl md:text-4xl font-black gradient-text mb-1" data-count="12500">0</div><div class="text-xs text-gray-500 font-medium">مشروع تم إنشاؤه</div></div>
+                <div class="text-center"><div class="text-3xl md:text-4xl font-black gradient-text mb-1" data-count="8400">0</div><div class="text-xs text-gray-500 font-medium">مستخدم نشط</div></div>
+                <div class="text-center"><div class="text-3xl md:text-4xl font-black gradient-text mb-1" data-count="350">0</div><div class="text-xs text-gray-500 font-medium">قالب جاهز</div></div>
+                <div class="text-center"><div class="text-3xl md:text-4xl font-black gradient-text mb-1">99.9<span class="text-lg">%</span></div><div class="text-xs text-gray-500 font-medium">وقت التشغيل</div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how-it-works" class="relative z-10 py-24">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-16 scroll-reveal">
+                <div class="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 mb-4"><i data-lucide="workflow" class="w-3.5 h-3.5 text-brand-500"></i><span class="text-xs font-medium text-gray-400">آلية العمل</span></div>
+                <h2 class="text-3xl md:text-5xl font-black mb-4">من الفكرة إلى <span class="gradient-text">الإطلاق</span></h2>
+            </div>
+            <div class="grid md:grid-cols-5 gap-6">
+                <div class="scroll-reveal card-hover glass rounded-2xl p-6 text-center relative" style="transition-delay:0.1s">
+                    <div class="w-14 h-14 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center mx-auto mb-4"><i data-lucide="pencil-line" class="w-6 h-6 text-brand-500"></i></div>
+                    <div class="text-xs font-bold text-brand-500 mb-2">01</div><h3 class="text-base font-bold mb-2">إدخال الفكرة</h3><p class="text-xs text-gray-500">اكتب وصف مشروعك أو اختر قالب</p>
+                    <div class="hidden md:block absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2"><i data-lucide="chevron-left" class="w-5 h-5 text-brand-500/30"></i></div>
+                </div>
+                <div class="scroll-reveal card-hover glass rounded-2xl p-6 text-center relative" style="transition-delay:0.2s">
+                    <div class="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-4"><i data-lucide="scan-search" class="w-6 h-6 text-blue-400"></i></div>
+                    <div class="text-xs font-bold text-blue-400 mb-2">02</div><h3 class="text-base font-bold mb-2">تحليل AI</h3><p class="text-xs text-gray-500">يحلل المحرك المتطلبات تلقائياً</p>
+                    <div class="hidden md:block absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2"><i data-lucide="chevron-left" class="w-5 h-5 text-brand-500/30"></i></div>
+                </div>
+                <div class="scroll-reveal card-hover glass rounded-2xl p-6 text-center relative" style="transition-delay:0.3s">
+                    <div class="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-4"><i data-lucide="code-2" class="w-6 h-6 text-purple-400"></i></div>
+                    <div class="text-xs font-bold text-purple-400 mb-2">03</div><h3 class="text-base font-bold mb-2">توليد المشروع</h3><p class="text-xs text-gray-500">ينشئ الواجهة والخلفية والقاعدة</p>
+                    <div class="hidden md:block absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2"><i data-lucide="chevron-left" class="w-5 h-5 text-brand-500/30"></i></div>
+                </div>
+                <div class="scroll-reveal card-hover glass rounded-2xl p-6 text-center relative" style="transition-delay:0.4s">
+                    <div class="w-14 h-14 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mx-auto mb-4"><i data-lucide="palette" class="w-6 h-6 text-yellow-400"></i></div>
+                    <div class="text-xs font-bold text-yellow-400 mb-2">04</div><h3 class="text-base font-bold mb-2">التخصيص</h3><p class="text-xs text-gray-500">عدّل الألوان والشعارات حسب ذوقك</p>
+                    <div class="hidden md:block absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2"><i data-lucide="chevron-left" class="w-5 h-5 text-brand-500/30"></i></div>
+                </div>
+                <div class="scroll-reveal card-hover glass rounded-2xl p-6 text-center" style="transition-delay:0.5s">
+                    <div class="w-14 h-14 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center mx-auto mb-4"><i data-lucide="rocket" class="w-6 h-6 text-brand-500"></i></div>
+                    <div class="text-xs font-bold text-brand-500 mb-2">05</div><h3 class="text-base font-bold mb-2">النشر</h3><p class="text-xs text-gray-500">انشر على الإنترنت برابط خاص</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features" class="relative z-10 py-24">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-16 scroll-reveal">
+                <div class="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 mb-4"><i data-lucide="layers" class="w-3.5 h-3.5 text-brand-500"></i><span class="text-xs font-medium text-gray-400">مكونات المنصة</span></div>
+                <h2 class="text-3xl md:text-5xl font-black mb-4">كل ما تحتاجه في <span class="gradient-text">مكان واحد</span></h2>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="scroll-reveal card-hover glass rounded-2xl p-7 group" style="transition-delay:0.1s"><div class="w-12 h-12 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform"><i data-lucide="layout-dashboard" class="w-6 h-6 text-brand-500"></i></div><h3 class="text-lg font-bold mb-2">واجهة المستخدم</h3><p class="text-sm text-gray-500 leading-relaxed">محرر سحب وإفلات، مكتبة قوالب، وإدارة كاملة للمحتوى والتطبيقات</p></div>
+                <div class="scroll-reveal card-hover glass rounded-2xl p-7 group" style="transition-delay:0.15s"><div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform"><i data-lucide="settings-2" class="w-6 h-6 text-blue-400"></i></div><h3 class="text-lg font-bold mb-2">لوحة التحكم</h3><p class="text-sm text-gray-500 leading-relaxed">إدارة المستخدمين، مراقبة المشاريع، تقارير أداء مفصلة</p></div>
+                <div class="scroll-reveal card-hover glass rounded-2xl p-7 group" style="transition-delay:0.2s"><div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform"><i data-lucide="brain" class="w-6 h-6 text-purple-400"></i></div><h3 class="text-lg font-bold mb-2">محرك AI</h3><p class="text-sm text-gray-500 leading-relaxed">توليد كود تلقائي، تحسين أداء، اقتراح تصميمات، وإصلاح أخطاء</p></div>
+                <div class="scroll-reveal card-hover glass rounded-2xl p-7 group" style="transition-delay:0.25s"><div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform"><i data-lucide="cloud-upload" class="w-6 h-6 text-cyan-400"></i></div><h3 class="text-lg font-bold mb-2">نظام النشر</h3><p class="text-sm text-gray-500 leading-relaxed">نشر تلقائي، روابط خاصة، دومينات مخصصة، وتكامل سحابي</p></div>
+                <div class="scroll-reveal card-hover glass rounded-2xl p-7 group" style="transition-delay:0.3s"><div class="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform"><i data-lucide="shopping-cart" class="w-6 h-6 text-yellow-400"></i></div><h3 class="text-lg font-bold mb-2">نظام المتاجر</h3><p class="text-sm text-gray-500 leading-relaxed">إدارة منتجات، سلة مشتريات، دفع إلكتروني، وكوبونات خصم</p></div>
+                <div class="scroll-reveal card-hover glass rounded-2xl p-7 group" style="transition-delay:0.35s"><div class="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform"><i data-lucide="smartphone" class="w-6 h-6 text-rose-400"></i></div><h3 class="text-lg font-bold mb-2">إنشاء التطبيقات</h3><p class="text-sm text-gray-500 leading-relaxed">تحويل المواقع إلى تطبيقات Android، دعم PWA ونشر جاهز</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TEMPLATES -->
+    <section id="templates" class="relative z-10 py-24">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-16 scroll-reveal">
+                <div class="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 mb-4"><i data-lucide="layout-template" class="w-3.5 h-3.5 text-brand-500"></i><span class="text-xs font-medium text-gray-400">مكتبة القوالب</span></div>
+                <h2 class="text-3xl md:text-5xl font-black mb-4">قوالب <span class="gradient-text">جاهزة للانطلاق</span></h2>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="scroll-reveal card-hover glass rounded-2xl overflow-hidden group" style="transition-delay:0.1s"><div class="relative h-44 overflow-hidden"><img src="https://picsum.photos/seed/perfume-store/600/400.jpg" class="w-full h-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-3 py-1 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30">متجر</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">متجر عطور فاخر</h4><p class="text-[11px] text-gray-400">تصميم أنيق</p></div></div></div>
+                <div class="scroll-reveal card-hover glass rounded-2xl overflow-hidden group" style="transition-delay:0.15s"><div class="relative h-44 overflow-hidden"><img src="https://picsum.photos/seed/restaurant-web/600/400.jpg" class="w-full h-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-3 py-1 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">مطاعم</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">موقع مطعم</h4><p class="text-[11px] text-gray-400">قائمة وحجوزات</p></div></div></div>
+                <div class="scroll-reveal card-hover glass rounded-2xl overflow-hidden group" style="transition-delay:0.2s"><div class="relative h-44 overflow-hidden"><img src="https://picsum.photos/seed/landing-saas/600/400.jpg" class="w-full h-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">SaaS</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">صفحة هبوط SaaS</h4><p class="text-[11px] text-gray-400">للشركات التقنية</p></div></div></div>
+                <div class="scroll-reveal card-hover glass rounded-2xl overflow-hidden group" style="transition-delay:0.25s"><div class="relative h-44 overflow-hidden"><img src="https://picsum.photos/seed/fashion-store/600/400.jpg" class="w-full h-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-3 py-1 rounded-full bg-pink-500/20 text-pink-400 border border-pink-500/30">أزياء</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">متجر أزياء</h4><p class="text-[11px] text-gray-400">تصميم عصري</p></div></div></div>
+                <div class="scroll-reveal card-hover glass rounded-2xl overflow-hidden group" style="transition-delay:0.3s"><div class="relative h-44 overflow-hidden"><img src="https://picsum.photos/seed/fitness-app/600/400.jpg" class="w-full h-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">تطبيق</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">تطبيق لياقة</h4><p class="text-[11px] text-gray-400">تتبع التمارين</p></div></div></div>
+                <div class="scroll-reveal card-hover glass rounded-2xl overflow-hidden group" style="transition-delay:0.35s"><div class="relative h-44 overflow-hidden"><img src="https://picsum.photos/seed/portfolio-site/600/400.jpg" class="w-full h-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-3 py-1 rounded-full bg-violet-500/20 text-violet-400 border border-violet-500/30">شخصي</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">بورتفوليو</h4><p class="text-[11px] text-gray-400">عرض أعمال</p></div></div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section id="pricing" class="relative z-10 py-24">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="text-center mb-16 scroll-reveal">
+                <div class="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 mb-4"><i data-lucide="credit-card" class="w-3.5 h-3.5 text-brand-500"></i><span class="text-xs font-medium text-gray-400">خطط الأسعار</span></div>
+                <h2 class="text-3xl md:text-5xl font-black mb-4">اختر <span class="gradient-text">خطتك</span></h2>
+            </div>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="scroll-reveal card-hover glass rounded-2xl p-7" style="transition-delay:0.1s"><div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">مجاني</div><div class="flex items-end gap-1 mb-2"><span class="text-4xl font-black">$0</span><span class="text-sm text-gray-500 mb-1">/شهرياً</span></div><p class="text-xs text-gray-500 mb-6">للتجربة والبدء</p><button onclick="openModal('register')" class="btn-outline w-full py-3 rounded-xl text-sm font-semibold text-gray-300 mb-6">ابدأ مجاناً</button><ul class="space-y-3"><li class="flex items-center gap-2.5 text-sm text-gray-400"><i data-lucide="check" class="w-4 h-4 text-brand-500"></i>مشروع واحد</li><li class="flex items-center gap-2.5 text-sm text-gray-400"><i data-lucide="check" class="w-4 h-4 text-brand-500"></i>10 قوالب</li><li class="flex items-center gap-2.5 text-sm text-gray-400"><i data-lucide="check" class="w-4 h-4 text-brand-500"></i>AI محدود</li><li class="flex items-center gap-2.5 text-sm text-gray-600"><i data-lucide="x" class="w-4 h-4 text-gray-700"></i>دومين مخصص</li></ul></div>
+                <div class="scroll-reveal glass rounded-2xl p-7 relative" style="transition-delay:0.15s; border:1px solid rgba(34,197,94,0.4)"><div class="absolute -top-3 left-1/2 -translate-x-1/2"><span class="text-[10px] font-bold px-4 py-1 rounded-full bg-brand-500 text-dark">الأكثر شعبية</span></div><div class="text-xs font-bold text-brand-500 uppercase tracking-wider mb-4">احترافي</div><div class="flex items-end gap-1 mb-2"><span class="text-4xl font-black gradient-text">$29</span><span class="text-sm text-gray-500 mb-1">/شهرياً</span></div><p class="text-xs text-gray-500 mb-6">لرواد الأعمال</p><button onclick="openModal('register')" class="btn-primary w-full py-3 rounded-xl text-sm font-bold text-white mb-6">اشترك الآن</button><ul class="space-y-3"><li class="flex items-center gap-2.5 text-sm text-gray-300"><i data-lucide="check" class="w-4 h-4 text-brand-500"></i>10 مشاريع</li><li class="flex items-center gap-2.5 text-sm text-gray-300"><i data-lucide="check" class="w-4 h-4 text-brand-500"></i>كل القوالب</li><li class="flex items-center gap-2.5 text-sm text-gray-300"><i data-lucide="check" class="w-4 h-4 text-brand-500"></i>AI بلا حدود</li><li class="flex items-center gap-2.5 text-sm text-gray-300"><i data-lucide="check" class="w-4 h-4 text-brand-500"></i>دومين + APK</li></ul></div>
+                <div class="scroll-reveal card-hover glass rounded-2xl p-7" style="transition-delay:0.2s"><div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">المؤسسات</div><div class="flex items-end gap-1 mb-2"><span class="text-4xl font-black">$99</span><span class="text-sm text-gray-500 mb-1">/شهرياً</span></div><p class="text-xs text-gray-500 mb-6">للشركات</p><button onclick="openModal('register')" class="btn-outline w-full py-3 rounded-xl text-sm font-semibold text-gray-300 mb-6">تواصل معنا</button><ul class="space-y-3"><li class="flex items-center gap-2.5 text-sm text-gray-400"><i data-lucide="check" class="w-4 h-4 text-brand-500"></i>مشاريع غير محدودة</li><li class="flex items-center gap-2.5 text-sm text-gray-400"><i data-lucide="check" class="w-4 h-4 text-brand-500"></i>قوالب مخصصة</li><li class="flex items-center gap-2.5 text-sm text-gray-400"><i data-lucide="check" class="w-4 h-4 text-brand-500"></i>API متقدمة</li><li class="flex items-center gap-2.5 text-sm text-gray-400"><i data-lucide="check" class="w-4 h-4 text-brand-500"></i>مدير حساب</li></ul></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="relative z-10 py-24">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="scroll-reveal relative glass rounded-3xl p-10 md:p-16 text-center overflow-hidden">
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-brand-500/10 rounded-full blur-[120px] pointer-events:none"></div>
+                <div class="relative">
+                    <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-brand-500/30"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+                    <h2 class="text-3xl md:text-5xl font-black mb-5">جاهز لبناء <span class="gradient-text">مستقبلك الرقمي؟</span></h2>
+                    <p class="text-gray-500 max-w-lg mx-auto mb-10">انضم لآلاف رواد الأعمال الذين بدأوا مشاريعهم مع Ali AI</p>
+                    <button onclick="openModal('register')" class="btn-primary px-10 py-4 rounded-2xl text-base font-bold text-white inline-flex items-center gap-2"><i data-lucide="rocket" class="w-5 h-5"></i> ابدأ مجاناً الآن</button>
+                    <p class="text-xs text-gray-600 mt-6">لا حاجة لبطاقة ائتمان • إلغاء في أي وقت</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="relative z-10 border-t border-white/5">
+        <div class="max-w-6xl mx-auto px-6 py-12">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><span class="text-sm font-bold">Ali <span class="gradient-text">AI</span></span></div>
+                <p class="text-xs text-gray-600">© 2025 Ali AI. جميع الحقوق محفوظة.</p>
+                <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span><span class="text-xs text-gray-500">جميع الأنظمة تعمل</span></div>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<!-- ==================== LOGIN MODAL ==================== -->
+<div id="login-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('login')">
+    <div class="modal-content p-8">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h2 class="text-2xl font-black">مرحباً بعودتك</h2>
+                <p class="text-sm text-gray-500 mt-1">سجّل دخولك للمتابعة</p>
+            </div>
+            <button onclick="closeModal('login')" class="w-9 h-9 rounded-xl glass flex items-center justify-center text-gray-500 hover:text-white transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-2">البريد الإلكتروني</label>
+                    <div class="input-icon"><i data-lucide="mail" class="w-4 h-4 icon"></i><input type="email" id="login-email" class="input-field" placeholder="example@email.com" required></div>
+                    <p id="login-email-error" class="text-[11px] text-red-400 mt-1 hidden"></p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-2">كلمة المرور</label>
+                    <div class="input-icon relative">
+                        <i data-lucide="lock" class="w-4 h-4 icon"></i>
+                        <input type="password" id="login-password" class="input-field" placeholder="••••••••" required minlength="6">
+                        <span class="password-toggle" onclick="togglePassword('login-password', this)"><i data-lucide="eye-off" class="w-4 h-4"></i></span>
+                    </div>
+                    <p id="login-password-error" class="text-[11px] text-red-400 mt-1 hidden"></p>
+                </div>
+            </div>
+            <div class="flex items-center justify-between mb-6">
+                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="login-remember" class="w-4 h-4 rounded accent-brand-500"><span class="text-xs text-gray-500">تذكرني</span></label>
+                <button type="button" onclick="showToast('تم إرسال رابط إعادة التعيين لبريدك', 'info')" class="text-xs text-brand-500 hover:text-brand-400">نسيت كلمة المرور؟</button>
+            </div>
+            <button type="submit" id="login-btn" class="btn-primary w-full py-3.5 rounded-xl text-sm font-bold text-white">تسجيل الدخول</button>
+            <p class="text-center text-xs text-gray-500 mt-5">ليس لديك حساب؟ <button type="button" onclick="closeModal('login');openModal('register')" class="text-brand-500 hover:text-brand-400 font-semibold">أنشئ حساباً جديداً</button></p>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== REGISTER MODAL ==================== -->
+<div id="register-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('register')">
+    <div class="modal-content p-8">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h2 class="text-2xl font-black">إنشاء حساب جديد</h2>
+                <p class="text-sm text-gray-500 mt-1">ابدأ رحلتك مع Ali AI</p>
+            </div>
+            <button onclick="closeModal('register')" class="w-9 h-9 rounded-xl glass flex items-center justify-center text-gray-500 hover:text-white transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form id="register-form" onsubmit="handleRegister(event)">
+            <div class="space-y-4 mb-6">
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-semibold text-gray-400 mb-2">الاسم الأول</label><div class="input-icon"><i data-lucide="user" class="w-4 h-4 icon"></i><input type="text" id="reg-fname" class="input-field" placeholder="أحمد" required minlength="2"></div><p id="reg-fname-error" class="text-[11px] text-red-400 mt-1 hidden"></p></div>
+                    <div><label class="block text-xs font-semibold text-gray-400 mb-2">الاسم الأخير</label><div class="input-icon"><i data-lucide="user" class="w-4 h-4 icon"></i><input type="text" id="reg-lname" class="input-field" placeholder="محمد" required minlength="2"></div><p id="reg-lname-error" class="text-[11px] text-red-400 mt-1 hidden"></p></div>
+                </div>
+                <div><label class="block text-xs font-semibold text-gray-400 mb-2">البريد الإلكتروني</label><div class="input-icon"><i data-lucide="mail" class="w-4 h-4 icon"></i><input type="email" id="reg-email" class="input-field" placeholder="example@email.com" required></div><p id="reg-email-error" class="text-[11px] text-red-400 mt-1 hidden"></p></div>
+                <div><label class="block text-xs font-semibold text-gray-400 mb-2">رقم الجوال</label><div class="input-icon"><i data-lucide="phone" class="w-4 h-4 icon"></i><input type="tel" id="reg-phone" class="input-field" placeholder="+966 5XX XXX XXXX" dir="ltr" style="text-align:right"></div></div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-2">كلمة المرور</label>
+                    <div class="input-icon relative">
+                        <i data-lucide="lock" class="w-4 h-4 icon"></i>
+                        <input type="password" id="reg-password" class="input-field" placeholder="8 أحرف على الأقل" required minlength="8" oninput="checkPasswordStrength(this.value)">
+                        <span class="password-toggle" onclick="togglePassword('reg-password', this)"><i data-lucide="eye-off" class="w-4 h-4"></i></span>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2"><div class="flex-1 bg-white/5 rounded-full overflow-hidden"><div id="strength-bar" class="strength-bar"></div></div><span id="strength-text" class="text-[10px] text-gray-600"></span></div>
+                    <p id="reg-password-error" class="text-[11px] text-red-400 mt-1 hidden"></p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-2">تأكيد كلمة المرور</label>
+                    <div class="input-icon relative"><i data-lucide="lock" class="w-4 h-4 icon"></i><input type="password" id="reg-confirm" class="input-field" placeholder="أعد كتابة كلمة المرور" required><span class="password-toggle" onclick="togglePassword('reg-confirm', this)"><i data-lucide="eye-off" class="w-4 h-4"></i></span></div>
+                    <p id="reg-confirm-error" class="text-[11px] text-red-400 mt-1 hidden"></p>
+                </div>
+            </div>
+            <label class="flex items-start gap-2 mb-6 cursor-pointer"><input type="checkbox" id="reg-terms" required class="w-4 h-4 mt-0.5 rounded accent-brand-500"><span class="text-xs text-gray-500">أوافق على <a href="#" class="text-brand-500">الشروط والأحكام</a> و<a href="#" class="text-brand-500">سياسة الخصوصية</a></span></label>
+            <button type="submit" id="register-btn" class="btn-primary w-full py-3.5 rounded-xl text-sm font-bold text-white">إنشاء الحساب</button>
+            <p class="text-center text-xs text-gray-500 mt-5">لديك حساب بالفعل؟ <button type="button" onclick="closeModal('register');openModal('login')" class="text-brand-500 hover:text-brand-400 font-semibold">سجّل دخولك</button></p>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== APP DASHBOARD ==================== -->
+<div id="app-dashboard" class="hidden">
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-mobile-overlay fixed inset-0 bg-black/60 z-40 hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar-desktop fixed top-0 right-0 w-64 h-full glass-strong z-50 flex flex-col transition-transform duration-300 md:translate-x-0 translate-x-full">
+        <div class="p-5 flex items-center justify-between border-b border-white/5">
+            <a href="#" class="flex items-center gap-3" onclick="event.preventDefault()">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+                <span class="text-base font-bold">Ali <span class="gradient-text">AI</span></span>
+            </a>
+            <button class="md:hidden text-gray-500" onclick="toggleSidebar()"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="flex-1 p-4 space-y-1 overflow-y-auto">
+            <div class="sidebar-link active" data-page="dashboard" onclick="switchPage('dashboard')"><i data-lucide="layout-dashboard" class="w-5 h-5"></i>لوحة التحكم</div>
+            <div class="sidebar-link" data-page="projects" onclick="switchPage('projects')"><i data-lucide="folder-open" class="w-5 h-5"></i>مشاريعي</div>
+            <div class="sidebar-link" data-page="new-project" onclick="switchPage('new-project')"><i data-lucide="plus-circle" class="w-5 h-5"></i>مشروع جديد</div>
+            <div class="sidebar-link" data-page="templates-app" onclick="switchPage('templates-app')"><i data-lucide="layout-template" class="w-5 h-5"></i>القوالب</div>
+
+            <div class="pt-4 mt-4 border-t border-white/5">
+                <p class="text-[10px] text-gray-600 font-semibold uppercase tracking-wider px-4 mb-2">الحساب</p>
+                <div class="sidebar-link" data-page="settings" onclick="switchPage('settings')"><i data-lucide="settings" class="w-5 h-5"></i>الإعدادات</div>
+                <div class="sidebar-link" onclick="handleLogout()"><i data-lucide="log-out" class="w-5 h-5 text-red-400"></i><span class="text-red-400">تسجيل الخروج</span></div>
+            </div>
+        </div>
+
+        <!-- User Info -->
+        <div class="p-4 border-t border-white/5">
+            <div class="flex items-center gap-3">
+                <div id="sidebar-avatar" class="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center text-brand-500 font-bold text-sm"></div>
+                <div class="flex-1 min-w-0"><div id="sidebar-name" class="text-sm font-semibold truncate"></div><div id="sidebar-plan" class="text-[10px] text-gray-500">الخطة المجانية</div></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="md:mr-64 min-h-screen">
+        <!-- Top Bar -->
+        <header class="sticky top-0 z-30 glass-strong px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button class="md:hidden text-gray-400" onclick="toggleSidebar()"><i data-lucide="menu" class="w-6 h-6"></i></button>
+                <h1 id="page-title" class="text-lg font-bold">لوحة التحكم</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="switchPage('new-project')" class="btn-primary px-4 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1.5"><i data-lucide="plus" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">مشروع جديد</span></button>
+                <button class="relative w-9 h-9 rounded-xl glass flex items-center justify-center text-gray-400 hover:text-white transition-colors"><i data-lucide="bell" class="w-4 h-4"></i><span class="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-dark"></span></button>
+            </div>
+        </header>
+
+        <!-- Page Content Container -->
+        <div class="p-6">
+            <!-- ===== DASHBOARD PAGE ===== -->
+            <div id="page-dashboard" class="app-page">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-black mb-1">مرحباً، <span id="dash-username" class="gradient-text"></span> 👋</h2>
+                    <p class="text-sm text-gray-500">إليك نظرة عامة على مشاريعك</p>
+                </div>
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="glass-card rounded-2xl p-5"><div class="flex items-center justify-between mb-3"><div class="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center"><i data-lucide="folder-open" class="w-5 h-5 text-brand-500"></i></div><span class="text-[10px] text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded-full">نشط</span></div><div id="stat-projects" class="text-2xl font-black mb-0.5">0</div><div class="text-xs text-gray-500">المشاريع</div></div>
+                    <div class="glass-card rounded-2xl p-5"><div class="flex items-center justify-between mb-3"><div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center"><i data-lucide="globe" class="w-5 h-5 text-blue-400"></i></div></div><div id="stat-live" class="text-2xl font-black mb-0.5">0</div><div class="text-xs text-gray-500">منشور</div></div>
+                    <div class="glass-card rounded-2xl p-5"><div class="flex items-center justify-between mb-3"><div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center"><i data-lucide="brain" class="w-5 h-5 text-purple-400"></i></div></div><div id="stat-ai" class="text-2xl font-black mb-0.5">0</div><div class="text-xs text-gray-500">طلبات AI</div></div>
+                    <div class="glass-card rounded-2xl p-5"><div class="flex items-center justify-between mb-3"><div class="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center"><i data-lucide="hard-drive" class="w-5 h-5 text-yellow-400"></i></div></div><div class="text-2xl font-black mb-0.5">50<span class="text-sm text-gray-500">MB</span></div><div class="text-xs text-gray-500">التخزين</div></div>
+                </div>
+                <!-- Quick Actions -->
+                <div class="glass-card rounded-2xl p-6 mb-8">
+                    <h3 class="text-sm font-bold mb-4">إجراءات سريعة</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <button onclick="switchPage('new-project')" class="glass rounded-xl p-4 text-center hover:border-brand-500/30 transition-all group"><div class="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform"><i data-lucide="plus" class="w-5 h-5 text-brand-500"></i></div><span class="text-xs text-gray-400">مشروع جديد</span></button>
+                        <button onclick="switchPage('templates-app')" class="glass rounded-xl p-4 text-center hover:border-blue-500/30 transition-all group"><div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform"><i data-lucide="layout-template" class="w-5 h-5 text-blue-400"></i></div><span class="text-xs text-gray-400">تصفح القوالب</span></button>
+                        <button onclick="switchPage('settings')" class="glass rounded-xl p-4 text-center hover:border-purple-500/30 transition-all group"><div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform"><i data-lucide="settings" class="w-5 h-5 text-purple-400"></i></div><span class="text-xs text-gray-400">الإعدادات</span></button>
+                        <button onclick="showToast('سيتم فتح مركز المساعدة قريباً', 'info')" class="glass rounded-xl p-4 text-center hover:border-yellow-500/30 transition-all group"><div class="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform"><i data-lucide="help-circle" class="w-5 h-5 text-yellow-400"></i></div><span class="text-xs text-gray-400">المساعدة</span></button>
+                    </div>
+                </div>
+                <!-- Recent Projects -->
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-bold">آخر المشاريع</h3><button onclick="switchPage('projects')" class="text-xs text-brand-500 hover:text-brand-400">عرض الكل ←</button></div>
+                    <div id="recent-projects-list"></div>
+                </div>
+            </div>
+
+            <!-- ===== PROJECTS PAGE ===== -->
+            <div id="page-projects" class="app-page hidden">
+                <div class="flex items-center justify-between mb-8">
+                    <div><h2 class="text-2xl font-black mb-1">مشاريعي</h2><p class="text-sm text-gray-500">إدارة جميع مشاريعك</p></div>
+                    <button onclick="switchPage('new-project')" class="btn-primary px-5 py-2.5 rounded-xl text-xs font-bold text-white flex items-center gap-1.5"><i data-lucide="plus" class="w-3.5 h-3.5"></i>مشروع جديد</button>
+                </div>
+                <div id="all-projects-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                <div id="no-projects" class="hidden text-center py-20">
+                    <div class="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mx-auto mb-4"><i data-lucide="folder-open" class="w-10 h-10 text-gray-600"></i></div>
+                    <h3 class="text-lg font-bold mb-2">لا توجد مشاريع بعد</h3>
+                    <p class="text-sm text-gray-500 mb-6">ابدأ بإنشاء مشروعك الأول بالذكاء الاصطناعي</p>
+                    <button onclick="switchPage('new-project')" class="btn-primary px-6 py-3 rounded-xl text-sm font-bold text-white">إنشاء مشروع</button>
+                </div>
+            </div>
+
+            <!-- ===== NEW PROJECT PAGE (Wizard) ===== -->
+            <div id="page-new-project" class="app-page hidden">
+                <div class="max-w-3xl mx-auto">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-black mb-1">إنشاء مشروع جديد</h2>
+                        <p class="text-sm text-gray-500">اتبع الخطوات لإنشاء مشروعك بالذكاء الاصطناعي</p>
+                    </div>
+                    <!-- Steps Indicator -->
+                    <div class="flex items-center justify-center mb-10" id="wizard-steps">
+                        <div class="step-dot current" data-step="1">1</div><div class="step-line"></div>
+                        <div class="step-dot pending" data-step="2">2</div><div class="step-line"></div>
+                        <div class="step-dot pending" data-step="3">3</div><div class="step-line"></div>
+                        <div class="step-dot pending" data-step="4">4</div>
+                    </div>
+                    <!-- Step 1: Idea -->
+                    <div id="wizard-step-1" class="wizard-step">
+                        <div class="glass-card rounded-2xl p-8">
+                            <h3 class="text-lg font-bold mb-2">صِف فكرتك</h3>
+                            <p class="text-sm text-gray-500 mb-6">اكتب وصفاً لمشروعك وسيتولى الذكاء الاصطناعي الباقي</p>
+                            <textarea id="wiz-idea" class="input-field min-h-[120px] resize-none mb-4" placeholder="مثال: أريد إنشاء متجر إلكتروني لبيع العطور الفاخرة مع تصميم أنيق ودعم الدفع الإلكتروني..."></textarea>
+                            <div class="flex flex-wrap gap-2 mb-6">
+                                <button type="button" onclick="document.getElementById('wiz-idea').value='أريد إنشاء متجر إلكتروني لبيع العطور الفاخرة مع تصميم أنيق'" class="text-[11px] px-3 py-1.5 rounded-lg glass text-gray-400 hover:text-white hover:border-brand-500/30 transition-all">🛒 متجر عطور</button>
+                                <button type="button" onclick="document.getElementById('wiz-idea').value='أريد موقع مطعم مع قائمة طعام ونظام حجوزات أونلاين'" class="text-[11px] px-3 py-1.5 rounded-lg glass text-gray-400 hover:text-white hover:border-brand-500/30 transition-all">🍽️ مطعم</button>
+                                <button type="button" onclick="document.getElementById('wiz-idea').value='أريد تطبيق لياقة بدنية لتتبع التمارين والحمية الغذائية'" class="text-[11px] px-3 py-1.5 rounded-lg glass text-gray-400 hover:text-white hover:border-brand-500/30 transition-all">💪 لياقة بدنية</button>
+                                <button type="button" onclick="document.getElementById('wiz-idea').value='أريد موقع بورتفوليو شخصي لعرض أعمالي كمصمم'" class="text-[11px] px-3 py-1.5 rounded-lg glass text-gray-400 hover:text-white hover:border-brand-500/30 transition-all">🎨 بورتفوليو</button>
+                            </div>
+                            <div class="flex justify-start"><button onclick="wizardNext(2)" class="btn-primary px-6 py-3 rounded-xl text-sm font-bold text-white flex items-center gap-2">التالي <i data-lucide="arrow-left" class="w-4 h-4"></i></button></div>
+                        </div>
+                    </div>
+                    <!-- Step 2: AI Analysis -->
+                    <div id="wizard-step-2" class="wizard-step hidden">
+                        <div class="glass-card rounded-2xl p-8">
+                            <h3 class="text-lg font-bold mb-2">تحليل الذكاء الاصطناعي</h3>
+                            <p class="text-sm text-gray-500 mb-6">يحلل المحرك فكرتك ويحدد المتطلبات</p>
+                            <div id="ai-analysis-loading" class="text-center py-10">
+                                <div class="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center mx-auto mb-4" style="animation:spin-slow 3s linear infinite"><i data-lucide="brain" class="w-8 h-8 text-brand-500"></i></div>
+                                <p class="text-sm text-gray-400 mb-2">جارِ تحليل فكرتك <span class="loading-dots"><span></span><span></span><span></span></span></p>
+                                <p class="text-[11px] text-gray-600">قد يستغرق بضع ثوانٍ</p>
+                            </div>
+                            <div id="ai-analysis-result" class="hidden"></div>
+                            <div id="ai-analysis-actions" class="hidden flex justify-between mt-6">
+                                <button onclick="wizardPrev(1)" class="btn-ghost px-5 py-3 rounded-xl text-sm font-semibold text-gray-400 flex items-center gap-2"><i data-lucide="arrow-right" class="w-4 h-4"></i> رجوع</button>
+                                <button onclick="wizardNext(3)" class="btn-primary px-6 py-3 rounded-xl text-sm font-bold text-white flex items-center gap-2">التالي <i data-lucide="arrow-left" class="w-4 h-4"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Step 3: Customize -->
+                    <div id="wizard-step-3" class="wizard-step hidden">
+                        <div class="glass-card rounded-2xl p-8">
+                            <h3 class="text-lg font-bold mb-2">تخصيص المشروع</h3>
+                            <p class="text-sm text-gray-500 mb-6">أضف اللمسات النهائية لمشروعك</p>
+                            <div class="space-y-5">
+                                <div><label class="block text-xs font-semibold text-gray-400 mb-2">اسم المشروع</label><input id="wiz-name" class="input-field" placeholder="مثال: متجر عطور النخبة"></div>
+                                <div><label class="block text-xs font-semibold text-gray-400 mb-2">وصف مختصر</label><input id="wiz-desc" class="input-field" placeholder="وصف قصير يظهر في محركات البحث"></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="block text-xs font-semibold text-gray-400 mb-2">اللون الرئيسي</label><div class="flex items-center gap-3"><input type="color" id="wiz-color" value="#22c55e" class="w-10 h-10 rounded-lg border-0 cursor-pointer bg-transparent"><span class="text-xs text-gray-500 font-mono" id="color-preview">#22c55e</span></div></div>
+                                    <div><label class="block text-xs font-semibold text-gray-400 mb-2">اللغة</label><select id="wiz-lang" class="input-field"><option value="ar">العربية</option><option value="en">English</option><option value="both">ثنائية اللغة</option></select></div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between mt-6">
+                                <button onclick="wizardPrev(2)" class="btn-ghost px-5 py-3 rounded-xl text-sm font-semibold text-gray-400 flex items-center gap-2"><i data-lucide="arrow-right" class="w-4 h-4"></i> رجوع</button>
+                                <button onclick="wizardNext(4)" class="btn-primary px-6 py-3 rounded-xl text-sm font-bold text-white flex items-center gap-2">بناء المشروع <i data-lucide="arrow-left" class="w-4 h-4"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Step 4: Building -->
+                    <div id="wizard-step-4" class="wizard-step hidden">
+                        <div class="glass-card rounded-2xl p-8 text-center">
+                            <div id="building-phase">
+                                <div class="w-20 h-20 rounded-3xl bg-brand-500/10 flex items-center justify-center mx-auto mb-6"><i data-lucide="code-2" class="w-10 h-10 text-brand-500" style="animation:spin-slow 2s linear infinite"></i></div>
+                                <h3 class="text-xl font-black mb-2">جارِ بناء مشروعك <span class="loading-dots"><span></span><span></span><span></span></span></h3>
+                                <p class="text-sm text-gray-500 mb-8">الذكاء الاصطناعي ينشئ كل شيء من أجلك</p>
+                                <div class="max-w-md mx-auto space-y-3 text-right">
+                                    <div id="build-step-1" class="flex items-center gap-3 text-sm text-gray-500"><div class="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center"><i data-lucide="loader" class="w-3 h-3 animate-spin"></i></div>تحليل الهيكل العام</div>
+                                    <div id="build-step-2" class="flex items-center gap-3 text-sm text-gray-600"><div class="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center"><i data-lucide="circle" class="w-3 h-3"></i></div>توليد واجهة المستخدم</div>
+                                    <div id="build-step-3" class="flex items-center gap-3 text-sm text-gray-600"><div class="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center"><i data-lucide="circle" class="w-3 h-3"></i></div>إنشاء الخلفية والقاعدة</div>
+                                    <div id="build-step-4" class="flex items-center gap-3 text-sm text-gray-600"><div class="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center"><i data-lucide="circle" class="w-3 h-3"></i></div>تحسين الأداء والSEO</div>
+                                    <div id="build-step-5" class="flex items-center gap-3 text-sm text-gray-600"><div class="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center"><i data-lucide="circle" class="w-3 h-3"></i></div>النشر على الإنترنت</div>
+                                </div>
+                            </div>
+                            <div id="building-done" class="hidden">
+                                <div class="w-20 h-20 rounded-3xl bg-brand-500/15 flex items-center justify-center mx-auto mb-6"><i data-lucide="check-circle" class="w-10 h-10 text-brand-500"></i></div>
+                                <h3 class="text-xl font-black mb-2">تم بناء مشروعك بنجاح! 🎉</h3>
+                                <p class="text-sm text-gray-500 mb-6">مشروعك جاهز ومباشر على الإنترنت</p>
+                                <div id="project-link-box" class="glass rounded-xl p-4 flex items-center gap-3 mb-6 max-w-md mx-auto text-right">
+                                    <div class="flex-1"><p class="text-[10px] text-gray-500 mb-1">رابط المشروع</p><p id="project-link" class="text-sm text-brand-400 font-mono truncate" dir="ltr"></p></div>
+                                    <button onclick="copyProjectLink()" class="w-9 h-9 rounded-lg bg-brand-500/15 flex items-center justify-center text-brand-500 hover:bg-brand-500/25 transition-colors flex-shrink-0"><i data-lucide="copy" class="w-4 h-4"></i></button>
+                                </div>
+                                <div class="flex items-center justify-center gap-3">
+                                    <button onclick="switchPage('projects')" class="btn-primary px-6 py-3 rounded-xl text-sm font-bold text-white">عرض مشاريعي</button>
+                                    <button onclick="resetWizard()" class="btn-outline px-6 py-3 rounded-xl text-sm font-semibold text-gray-300">مشروع آخر</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TEMPLATES APP PAGE ===== -->
+            <div id="page-templates-app" class="app-page hidden">
+                <div class="mb-8"><h2 class="text-2xl font-black mb-1">مكتبة القوالب</h2><p class="text-sm text-gray-500">اختر قالباً وابدأ تخصيصه</p></div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="project-card glass-card rounded-2xl overflow-hidden" onclick="useTemplate('متجر عطور فاخر', 'ecommerce')"><div class="relative h-40 overflow-hidden"><img src="https://picsum.photos/seed/perfume-store/600/400.jpg" class="w-full h-full object-cover opacity-50"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-brand-500/20 text-brand-400">متجر</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">متجر عطور فاخر</h4></div></div><div class="p-4 flex items-center justify-between"><span class="text-[11px] text-gray-500">مجاني</span><span class="text-xs text-brand-500 font-semibold">استخدم ←</span></div></div>
+                    <div class="project-card glass-card rounded-2xl overflow-hidden" onclick="useTemplate('موقع مطعم', 'restaurant')"><div class="relative h-40 overflow-hidden"><img src="https://picsum.photos/seed/restaurant-web/600/400.jpg" class="w-full h-full object-cover opacity-50"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400">مطاعم</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">موقع مطعم</h4></div></div><div class="p-4 flex items-center justify-between"><span class="text-[11px] text-gray-500">مجاني</span><span class="text-xs text-brand-500 font-semibold">استخدم ←</span></div></div>
+                    <div class="project-card glass-card rounded-2xl overflow-hidden" onclick="useTemplate('صفحة هبوط SaaS', 'landing')"><div class="relative h-40 overflow-hidden"><img src="https://picsum.photos/seed/landing-saas/600/400.jpg" class="w-full h-full object-cover opacity-50"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400">SaaS</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">صفحة هبوط SaaS</h4></div></div><div class="p-4 flex items-center justify-between"><span class="text-[11px] text-gray-500">مجاني</span><span class="text-xs text-brand-500 font-semibold">استخدم ←</span></div></div>
+                    <div class="project-card glass-card rounded-2xl overflow-hidden" onclick="useTemplate('متجر أزياء', 'ecommerce')"><div class="relative h-40 overflow-hidden"><img src="https://picsum.photos/seed/fashion-store/600/400.jpg" class="w-full h-full object-cover opacity-50"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-pink-500/20 text-pink-400">أزياء</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">متجر أزياء</h4></div></div><div class="p-4 flex items-center justify-between"><span class="text-[11px] text-gray-500">مجاني</span><span class="text-xs text-brand-500 font-semibold">استخدم ←</span></div></div>
+                    <div class="project-card glass-card rounded-2xl overflow-hidden" onclick="useTemplate('تطبيق لياقة', 'app')"><div class="relative h-40 overflow-hidden"><img src="https://picsum.photos/seed/fitness-app/600/400.jpg" class="w-full h-full object-cover opacity-50"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400">تطبيق</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">تطبيق لياقة</h4></div></div><div class="p-4 flex items-center justify-between"><span class="text-[11px] text-gray-500">مجاني</span><span class="text-xs text-brand-500 font-semibold">استخدم ←</span></div></div>
+                    <div class="project-card glass-card rounded-2xl overflow-hidden" onclick="useTemplate('بورتفوليو شخصي', 'portfolio')"><div class="relative h-40 overflow-hidden"><img src="https://picsum.photos/seed/portfolio-site/600/400.jpg" class="w-full h-full object-cover opacity-50"><div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/50 to-transparent"></div><div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-400">شخصي</span></div><div class="absolute bottom-3 right-3"><h4 class="text-sm font-bold">بورتفوليو شخصي</h4></div></div><div class="p-4 flex items-center justify-between"><span class="text-[11px] text-gray-500">مجاني</span><span class="text-xs text-brand-500 font-semibold">استخدم ←</span></div></div>
+                </div>
+            </div>
+
+            <!-- ===== SETTINGS PAGE ===== -->
+            <div id="page-settings" class="app-page hidden">
+                <div class="max-w-2xl">
+                    <div class="mb-8"><h2 class="text-2xl font-black mb-1">الإعدادات</h2><p class="text-sm text-gray-500">إدارة حسابك وتفضيلاتك</p></div>
+                    <!-- Profile -->
+                    <div class="glass-card rounded-2xl p-6 mb-6">
+                        <h3 class="text-sm font-bold mb-5 flex items-center gap-2"><i data-lucide="user" class="w-4 h-4 text-brand-500"></i>الملف الشخصي</h3>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="block text-xs font-semibold text-gray-400 mb-2">الاسم الأول</label><input id="set-fname" class="input-field"></div>
+                                <div><label class="block text-xs font-semibold text-gray-400 mb-2">الاسم الأخير</label><input id="set-lname" class="input-field"></div>
+                            </div>
+                            <div><label class="block text-xs font-semibold text-gray-400 mb-2">البريد الإلكتروني</label><input id="set-email" class="input-field" disabled style="opacity:0.5"></div>
+                            <div><label class="block text-xs font-semibold text-gray-400 mb-2">رقم الجوال</label><input id="set-phone" class="input-field" dir="ltr" style="text-align:right"></div>
+                            <button onclick="saveSettings()" class="btn-primary px-6 py-2.5 rounded-xl text-xs font-bold text-white">حفظ التغييرات</button>
+                        </div>
+                    </div>
+                    <!-- Change Password -->
+                    <div class="glass-card rounded-2xl p-6 mb-6">
+                        <h3 class="text-sm font-bold mb-5 flex items-center gap-2"><i data-lucide="lock" class="w-4 h-4 text-yellow-400"></i>تغيير كلمة المرور</h3>
+                        <div class="space-y-4">
+                            <div class="input-icon"><i data-lucide="lock" class="w-4 h-4 icon"></i><input type="password" id="set-current-pass" class="input-field" placeholder="كلمة المرور الحالية"></div>
+                            <div class="input-icon"><i data-lucide="lock" class="w-4 h-4 icon"></i><input type="password" id="set-new-pass" class="input-field" placeholder="كلمة المرور الجديدة"></div>
+                            <button onclick="changePassword()" class="btn-outline px-6 py-2.5 rounded-xl text-xs font-semibold text-gray-300">تحديث كلمة المرور</button>
+                        </div>
+                    </div>
+                    <!-- Danger Zone -->
+                    <div class="glass-card rounded-2xl p-6 border-red-500/10">
+                        <h3 class="text-sm font-bold mb-2 flex items-center gap-2 text-red-400"><i data-lucide="alert-triangle" class="w-4 h-4"></i>منطقة الخطر</h3>
+                        <p class="text-xs text-gray-500 mb-4">حذف الحساب سيؤدي لحذف جميع مشاريعك نهائياً</p>
+                        <button onclick="deleteAccount()" class="px-5 py-2 rounded-xl text-xs font-semibold text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors">حذف الحساب</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="mobile-bottom-nav fixed bottom-0 left-0 right-0 glass-strong z-40 flex items-center justify-around py-2 px-4 border-t border-white/5">
+        <button onclick="switchPage('dashboard')" class="flex flex-col items-center gap-1 py-1 text-brand-500"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span class="text-[10px]">الرئيسية</span></button>
+        <button onclick="switchPage('projects')" class="flex flex-col items-center gap-1 py-1 text-gray-500"><i data-lucide="folder-open" class="w-5 h-5"></i><span class="text-[10px]">مشاريعي</span></button>
+        <button onclick="switchPage('new-project')" class="flex flex-col items-center justify-center w-12 h-12 -mt-5 rounded-2xl bg-brand-500 text-dark shadow-lg shadow-brand-500/30"><i data-lucide="plus" class="w-6 h-6"></i></button>
+        <button onclick="switchPage('templates-app')" class="flex flex-col items-center gap-1 py-1 text-gray-500"><i data-lucide="layout-template" class="w-5 h-5"></i><span class="text-[10px]">القوالب</span></button>
+        <button onclick="switchPage('settings')" class="flex flex-col items-center gap-1 py-1 text-gray-500"><i data-lucide="settings" class="w-5 h-5"></i><span class="text-[10px]">الإعدادات</span></button>
+    </nav>
+</div>
+
+<!-- ==================== SCRIPTS ==================== -->
+<script>
+// ===== Initialize Lucide =====
+lucide.createIcons();
+
+// ===== Three.js Background =====
+(function(){
+    const c=document.getElementById('three-canvas'),r=new THREE.WebGLRenderer({canvas:c,alpha:true,antialias:true});
+    r.setSize(window.innerWidth,window.innerHeight);r.setPixelRatio(Math.min(devicePixelRatio,2));
+    const s=new THREE.Scene(),cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);cam.position.z=30;
+    const n=100,p=new Float32Array(n*3),v=[];
+    for(let i=0;i<n;i++){p[i*3]=(Math.random()-.5)*60;p[i*3+1]=(Math.random()-.5)*60;p[i*3+2]=(Math.random()-.5)*40;v.push({x:(Math.random()-.5)*.02,y:(Math.random()-.5)*.02,z:(Math.random()-.5)*.01})}
+    const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(p,3));
+    const pm=new THREE.PointsMaterial({size:1.2,color:0x22c55e,transparent:true,opacity:0.35,blending:THREE.AdditiveBlending,sizeAttenuation:true});
+    s.add(new THREE.Points(pg,pm));
+    const lm=new THREE.LineBasicMaterial({color:0x22c55e,transparent:true,opacity:0.05,blending:THREE.AdditiveBlending});
+    let lg=new THREE.BufferGeometry(),ln=new THREE.LineSegments(lg,lm);s.add(ln);
+    function upLines(){const a=pg.attributes.position.array,l=[];for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const dx=a[i*3]-a[j*3],dy=a[i*3+1]-a[j*3+1],dz=a[i*3+2]-a[j*3+2];if(Math.sqrt(dx*dx+dy*dy+dz*dz)<12){l.push(a[i*3],a[i*3+1],a[i*3+2],a[j*3],a[j*3+1],a[j*3+2])}}ln.geometry.dispose();ln.geometry=new THREE.BufferGeometry();ln.geometry.setAttribute('position',new THREE.Float32BufferAttribute(l,3))}
+    let mx=0,my=0;document.addEventListener('mousemove',e=>{mx=(e.clientX/innerWidth-.5)*2;my=(e.clientY/innerHeight-.5)*2});
+    !function anim(){requestAnimationFrame(anim);const a=pg.attributes.position.array;for(let i=0;i<n;i++){a[i*3]+=v[i].x;a[i*3+1]+=v[i].y;a[i*3+2]+=v[i].z;if(Math.abs(a[i*3])>30)v[i].x*=-1;if(Math.abs(a[i*3+1])>30)v[i].y*=-1;if(Math.abs(a[i*3+2])>20)v[i].z*=-1}pg.attributes.position.needsUpdate=true;cam.position.x+=(mx*3-cam.position.x)*.02;cam.position.y+=(-my*3-cam.position.y)*.02;cam.lookAt(s.position);upLines();r.render(s,cam)}();
+    addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();r.setSize(innerWidth,innerHeight)});
+})();
+
+// ===== Typing Effect =====
+(function(){
+    const t=['متجر إلكتروني لبيع العطور الفاخرة','تطبيق لتوصيل الطلبات السريعة','موقع شخصي لعرض أعمالي','منصة تعليمية أونلاين','صفحة هبوط لمنتج SaaS جديد','متجر ملابس أونلاين مع نظام دفع'];
+    const el=document.getElementById('typing-text');let ti=0,ci=0,del=false;
+    function type(){const c=t[ti];if(del){el.textContent=c.substring(0,ci-1);ci--}else{el.textContent=c.substring(0,ci+1);ci++}let d=del?30:60;if(!del&&ci===c.length){d=2000;del=true}else if(del&&ci===0){del=false;ti=(ti+1)%t.length;d=400}setTimeout(type,d)}type();
+})();
+
+// ===== Navbar Scroll =====
+window.addEventListener('scroll',()=>{document.getElementById('navbar').classList.toggle('glass-strong',scrollY>50)});
+
+// ===== Scroll Reveal =====
+const srObs=new IntersectionObserver(e=>e.forEach(en=>{if(en.isIntersecting)en.target.classList.add('visible')}),{threshold:.1,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.scroll-reveal').forEach(el=>srObs.observe(el));
+
+// ===== Counter Animation =====
+const cObs=new IntersectionObserver(e=>e.forEach(en=>{if(en.isIntersecting){const t=+en.target.dataset.count;let c=0;const inc=t/80;const timer=setInterval(()=>{c+=inc;if(c>=t){c=t;clearInterval(timer)}en.target.textContent=Math.floor(c).toLocaleString()+'+'},20);cObs.unobserve(en.target)}}),{threshold:.5});
+document.querySelectorAll('[data-count]').forEach(c=>cObs.observe(c));
+
+// ===== Toast =====
+function showToast(msg,type='success'){const t=document.getElementById('toast');t.textContent=(type==='success'?'✓ ':type==='error'?'✗ ':'ℹ ')+msg;t.className='toast toast-'+type+' show';setTimeout(()=>t.classList.remove('show'),3500)}
+
+// ===== Modal =====
+function openModal(type){document.getElementById(type+'-modal').classList.add('active');document.body.style.overflow='hidden';lucide.createIcons()}
+function closeModal(type){document.getElementById(type+'-modal').classList.remove('active');document.body.style.overflow='';clearFormErrors(type)}
+
+// ===== Password Toggle =====
+function togglePassword(id,btn){const inp=document.getElementById(id);const isP=inp.type==='password';inp.type=isP?'text':'password';btn.innerHTML=isP?'<i data-lucide="eye" class="w-4 h-4"></i>':'<i data-lucide="eye-off" class="w-4 h-4"></i>';lucide.createIcons()}
+
+// ===== Password Strength =====
+function checkPasswordStrength(p){const bar=document.getElementById('strength-bar');const txt=document.getElementById('strength-text');if(!p){bar.className='strength-bar';txt.textContent='';return}let s=0;if(p.length>=8)s++;if(/[A-Z]/.test(p))s++;if(/[0-9]/.test(p))s++;if(/[^A-Za-z0-9]/.test(p))s++;if(s<=1){bar.className='strength-bar strength-weak';txt.textContent='ضعيفة';txt.style.color='#ef4444'}else if(s<=2){bar.className='strength-bar strength-medium';txt.textContent='متوسطة';txt.style.color='#eab308'}else{bar.className='strength-bar strength-strong';txt.textContent='قوية';txt.style.color='#22c55e'}}
+
+// ===== Form Validation =====
+function showFieldError(id,msg){const inp=document.getElementById(id);const err=document.getElementById(id+'-error');if(inp)inp.classList.add('error');if(err){err.textContent=msg;err.classList.remove('hidden')}}
+function clearFormErrors(type){document.querySelectorAll('#'+type+'-form .input-field').forEach(i=>i.classList.remove('error'));document.querySelectorAll('#'+type+'-form [id$="-error"]').forEach(e=>e.classList.add('hidden'))}
+function validateEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)}
+
+// ===== DB (localStorage) =====
+function getUsers(){return JSON.parse(localStorage.getItem('ali_ai_users')||'[]')}
+function saveUsers(u){localStorage.setItem('ali_ai_users',JSON.stringify(u))}
+function getSession(){return JSON.parse(localStorage.getItem('ali_ai_session')||'null')}
+function setSession(u){localStorage.setItem('ali_ai_session',JSON.stringify(u))}
+function clearSession(){localStorage.removeItem('ali_ai_session')}
+function getProjects(){return JSON.parse(localStorage.getItem('ali_ai_projects_'+getSession()?.id)||'[]')}
+function saveProjects(p){localStorage.setItem('ali_ai_projects_'+getSession()?.id,JSON.stringify(p))}
+
+// ===== Register =====
+function handleRegister(e){
+    e.preventDefault();clearFormErrors('register');
+    const fn=document.getElementById('reg-fname').value.trim();
+    const ln=document.getElementById('reg-lname').value.trim();
+    const em=document.getElementById('reg-email').value.trim();
+    const ph=document.getElementById('reg-phone').value.trim();
+    const pw=document.getElementById('reg-password').value;
+    const cf=document.getElementById('reg-confirm').value;
+    let valid=true;
+    if(fn.length<2){showFieldError('reg-fname','الاسم يجب أن يكون حرفين على الأقل');valid=false}
+    if(ln.length<2){showFieldError('reg-lname','الاسم يجب أن يكون حرفين على الأقل');valid=false}
+    if(!validateEmail(em)){showFieldError('reg-email','بريد إلكتروني غير صالح');valid=false}
+    if(pw.length<8){showFieldError('reg-password','كلمة المرور يجب أن تكون 8 أحرف على الأقل');valid=false}
+    if(pw!==cf){showFieldError('reg-confirm','كلمتا المرور غير متطابقتين');valid=false}
+    if(!valid)return;
+    const users=getUsers();
+    if(users.find(u=>u.email===em)){showFieldError('reg-email','هذا البريد مسجل بالفعل');return}
+    const btn=document.getElementById('register-btn');btn.disabled=true;btn.innerHTML='<svg class="w-4 h-4 animate-spin mx-auto" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg>';
+    setTimeout(()=>{
+        const user={id:Date.now().toString(),fname:fn,lname:ln,email:em,phone:ph,password:pw,createdAt:new Date().toISOString()};
+        users.push(user);saveUsers(users);
+        setSession(user);btn.disabled=false;btn.textContent='إنشاء الحساب';closeModal('register');
+        showToast('تم إنشاء حسابك بنجاح! مرحباً بك');showApp();
+    },1500);
+}
+
+// ===== Login =====
+function handleLogin(e){
+    e.preventDefault();clearFormErrors('login');
+    const em=document.getElementById('login-email').value.trim();
+    const pw=document.getElementById('login-password').value;
+    let valid=true;
+    if(!validateEmail(em)){showFieldError('login-email','بريد إلكتروني غير صالح');valid=false}
+    if(pw.length<6){showFieldError('login-password','كلمة المرور قصيرة جداً');valid=false}
+    if(!valid)return;
+    const btn=document.getElementById('login-btn');btn.disabled=true;btn.innerHTML='<svg class="w-4 h-4 animate-spin mx-auto" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg>';
+    setTimeout(()=>{
+        const users=getUsers();const user=users.find(u=>u.email===em&&u.password===pw);
+        btn.disabled=false;btn.textContent='تسجيل الدخول';
+        if(!user){showFieldError('login-password','البريد أو كلمة المرور غير صحيحة');return}
+        setSession(user);closeModal('login');showToast('مرحباً بعودتك، '+user.fname);showApp();
+    },1200);
+}
+
+// ===== Logout =====
+function handleLogout(){clearSession();document.getElementById('app-dashboard').classList.add('hidden');document.getElementById('landing-page').classList.remove('hidden');showToast('تم تسجيل خروجك بنجاح','info')}
+
+// ===== Show App =====
+function showApp(){
+    document.getElementById('landing-page').classList.add('hidden');
+    document.getElementById('app-dashboard').classList.remove('hidden');
+    const u=getSession();if(!u)return;
+    document.getElementById('sidebar-avatar').textContent=u.fname[0]+u.lname[0];
+    document.getElementById('sidebar-name').textContent=u.fname+' '+u.lname;
+    document.getElementById('dash-username').textContent=u.fname;
+    switchPage('dashboard');lucide.createIcons();
+}
+
+// ===== Sidebar =====
+function toggleSidebar(){const s=document.getElementById('sidebar');const o=document.getElementById('sidebar-overlay');s.classList.toggle('translate-x-full');o.classList.toggle('hidden')}
+
+// ===== Page Switch =====
+function switchPage(page){
+    document.querySelectorAll('.app-page').forEach(p=>p.classList.add('hidden'));
+    const el=document.getElementById('page-'+page);if(el)el.classList.remove('hidden');
+    document.querySelectorAll('.sidebar-link[data-page]').forEach(l=>{l.classList.toggle('active',l.dataset.page===page)});
+    const titles={'dashboard':'لوحة التحكم','projects':'مشاريعي','new-project':'مشروع جديد','templates-app':'القوالب','settings':'الإعدادات'};
+    document.getElementById('page-title').textContent=titles[page]||'';
+    if(page==='dashboard')updateDashboard();
+    if(page==='projects')renderProjects();
+    if(page==='settings')loadSettings();
+    if(page==='new-project')resetWizard();
+    // Close mobile sidebar
+    if(innerWidth<769){document.getElementById('sidebar').classList.add('translate-x-full');document.getElementById('sidebar-overlay').classList.add('hidden')}
+    lucide.createIcons();window.scrollTo(0,0);
+}
+
+// ===== Dashboard =====
+function updateDashboard(){
+    const u=getSession();if(!u)return;
+    document.getElementById('dash-username').textContent=u.fname;
+    const projects=getProjects();
+    document.getElementById('stat-projects').textContent=projects.length;
+    document.getElementById('stat-live').textContent=projects.filter(p=>p.status==='live').length;
+    document.getElementById('stat-ai').textContent=projects.length;
+    const list=document.getElementById('recent-projects-list');
+    if(!projects.length){list.innerHTML='<div class="text-center py-8"><p class="text-sm text-gray-500">لا توجد مشاريع بعد</p><button onclick="switchPage(\'new-project\')" class="text-xs text-brand-500 mt-2 hover:text-brand-400">أنشئ مشروعك الأول ←</button></div>';return}
+    list.innerHTML=projects.slice(-3).reverse().map(p=>`
+        <div class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/[0.02] transition-colors cursor-pointer" onclick="viewProject('${p.id}')">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style="background:${p.color}20">${p.icon||'📁'}</div>
+            <div class="flex-1 min-w-0"><p class="text-sm font-semibold truncate">${p.name}</p><p class="text-[11px] text-gray-500">${p.type} • ${timeAgo(p.createdAt)}</p></div>
+            <span class="text-[10px] font-bold px-2.5 py-1 rounded-full ${p.status==='live'?'bg-brand-500/15 text-brand-400':'bg-yellow-500/15 text-yellow-400'}">${p.status==='live'?'منشور':'قيد البناء'}</span>
+        </div>
+    `).join('');
+}
+
+function timeAgo(d){const s=Math.floor((Date.now()-new Date(d))/1000);if(s<60)return'الآن';if(s<3600)return Math.floor(s/60)+' دقيقة';if(s<86400)return Math.floor(s/3600)+' ساعة';return Math.floor(s/86400)+' يوم'}
+
+// ===== Projects =====
+function renderProjects(){
+    const projects=getProjects();const list=document.getElementById('all-projects-list');const empty=document.getElementById('no-projects');
+    if(!projects.length){list.innerHTML='';empty.classList.remove('hidden');return}
+    empty.classList.add('hidden');
+    list.innerHTML=projects.reverse().map(p=>`
+        <div class="project-card glass-card rounded-2xl overflow-hidden" onclick="viewProject('${p.id}')">
+            <div class="h-32 relative" style="background:linear-gradient(135deg,${p.color}15,${p.color}05)">
+                <div class="absolute inset-0 flex items-center justify-center text-4xl">${p.icon||'📁'}</div>
+                <div class="absolute top-3 left-3 flex gap-1.5">
+                    <button onclick="event.stopPropagation();deleteProject('${p.id}')" class="w-7 h-7 rounded-lg bg-red-500/15 flex items-center justify-center text-red-400 hover:bg-red-500/25 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                </div>
+                <div class="absolute top-3 right-3"><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${p.status==='live'?'bg-brand-500/15 text-brand-400 border border-brand-500/20':'bg-yellow-500/15 text-yellow-400 border border-yellow-500/20'}">${p.status==='live'?'🟢 منشور':'🟡 قيد البناء'}</span></div>
+            </div>
+            <div class="p-4">
+                <h4 class="text-sm font-bold mb-1 truncate">${p.name}</h4>
+                <p class="text-[11px] text-gray-500 mb-3 line-clamp-1">${p.description||'بدون وصف'}</p>
+                <div class="flex items-center justify-between"><span class="text-[10px] text-gray-600">${timeAgo(p.createdAt)}</span>${p.status==='live'?`<span class="text-[10px] text-brand-400 font-mono truncate max-w-[140px]" dir="ltr">${p.url}</span>`:''}</div>
+            </div>
+        </div>
+    `).join('');
+    lucide.createIcons();
+}
+
+function viewProject(id){
+    const p=getProjects().find(x=>x.id===id);if(!p)return;
+    showToast('مشروع: '+p.name+' | الحالة: '+(p.status==='live'?'منشور':'قيد البناء'),'info');
+}
+
+function deleteProject(id){
+    const projects=getProjects().filter(p=>p.id!==id);saveProjects(projects);renderProjects();showToast('تم حذف المشروع');
+}
+
+// ===== Settings =====
+function loadSettings(){
+    const u=getSession();if(!u)return;
+    document.getElementById('set-fname').value=u.fname;
+    document.getElementById('set-lname').value=u.lname;
+    document.getElementById('set-email').value=u.email;
+    document.getElementById('set-phone').value=u.phone||'';
+}
+
+function saveSettings(){
+    const u=getSession();if(!u)return;
+    u.fname=document.getElementById('set-fname').value.trim();
+    u.lname=document.getElementById('set-lname').value.trim();
+    u.phone=document.getElementById('set-phone').value.trim();
+    const users=getUsers();const idx=users.findIndex(x=>x.id===u.id);if(idx>=0)users[idx]=u;
+    saveUsers(users);setSession(u);
+    document.getElementById('sidebar-avatar').textContent=u.fname[0]+u.lname[0];
+    document.getElementById('sidebar-name').textContent=u.fname+' '+u.lname;
+    showToast('تم حفظ التغييرات بنجاح');
+}
+
+function changePassword(){
+    const u=getSession();if(!u)return;
+    const cur=document.getElementById('set-current-pass').value;
+    const nw=document.getElementById('set-new-pass').value;
+    if(cur!==u.password){showToast('كلمة المرور الحالية غير صحيحة','error');return}
+    if(nw.length<8){showToast('كلمة المرور الجديدة يجب أن تكون 8 أحرف','error');return}
+    u.password=nw;const users=getUsers();const idx=users.findIndex(x=>x.id===u.id);if(idx>=0)users[idx]=u;
+    saveUsers(users);setSession(u);
+    document.getElementById('set-current-pass').value='';document.getElementById('set-new-pass').value='';
+    showToast('تم تحديث كلمة المرور');
+}
+
+function deleteAccount(){
+    if(!confirm('هل أنت متأكد من حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.'))return;
+    const u=getSession();const users=getUsers().filter(x=>x.id!==u.id);saveUsers(users);
+    localStorage.removeItem('ali_ai_projects_'+u.id);clearSession();
+    document.getElementById('app-dashboard').classList.add('hidden');
+    document.getElementById('landing-page').classList.remove('hidden');
+    showToast('تم حذف حسابك','info');
+}
+
+// ===== Project Wizard =====
+let wizardStep=1;let wizardData={};
+
+function resetWizard(){
+    wizardStep=1;wizardData={};
+    document.querySelectorAll('.wizard-step').forEach(s=>s.classList.add('hidden'));
+    document.getElementById('wizard-step-1').classList.remove('hidden');
+    document.getElementById('wiz-idea').value='';
+    document.getElementById('wiz-name').value='';
+    document.getElementById('wiz-desc').value='';
+    document.getElementById('wiz-color').value='#22c55e';
+    document.getElementById('wiz-lang').value='ar';
+    document.getElementById('building-phase').classList.remove('hidden');
+    document.getElementById('building-done').classList.add('hidden');
+    updateWizardSteps();lucide.createIcons();
+}
+
+function updateWizardSteps(){
+    document.querySelectorAll('.step-dot').forEach((d,i)=>{
+        const s=i+1;d.className='step-dot '+(s<wizardStep?'completed':s===wizardStep?'current':'pending');
+        d.innerHTML=s<wizardStep?'<i data-lucide="check" class="w-4 h-4"></i>':s;
+    });
+    document.querySelectorAll('.step-line').forEach((l,i)=>{l.className='step-line'+(i<wizardStep-1?' completed':'')});
+    lucide.createIcons();
+}
+
+function wizardNext(step){
+    if(step===2){
+        const idea=document.getElementById('wiz-idea').value.trim();
+        if(!idea){showToast('اكتب وصف فكرتك أولاً','error');return}
+        wizardData.idea=idea;
+        // Show AI analysis
+        document.getElementById('ai-analysis-loading').classList.remove('hidden');
+        document.getElementById('ai-analysis-result').classList.add('hidden');
+        document.getElementById('ai-analysis-actions').classList.add('hidden');
+    }
+    if(step===3){
+        wizardData.name=document.getElementById('wiz-name').value.trim()||'مشروع بدون اسم';
+        wizardData.description=document.getElementById('wiz-desc').value.trim();
+        wizardData.color=document.getElementById('wiz-color').value;
+        wizardData.lang=document.getElementById('wiz-lang').value;
+    }
+    if(step===4){startBuilding()}
+    wizardStep=step;
+    document.querySelectorAll('.wizard-step').forEach(s=>s.classList.add('hidden'));
+    document.getElementById('wizard-step-'+step).classList.remove('hidden');
+    updateWizardSteps();
+    if(step===2)runAIAnalysis();
+}
+
+function wizardPrev(step){wizardStep=step;document.querySelectorAll('.wizard-step').forEach(s=>s.classList.add('hidden'));document.getElementById('wizard-step-'+step).classList.remove('hidden');updateWizardSteps()}
+
+// Color preview
+document.getElementById('wiz-color')?.addEventListener('input',function(){document.getElementById('color-preview').textContent=this.value});
+
+function runAIAnalysis(){
+    const idea=wizardData.idea.toLowerCase();
+    let type='موقع إلكتروني',icon='🌐',features=['صفحات متعددة','تصميم متجاوب','نظام اتصال','SEO'];
+    if(idea.includes('متجر')||idea.includes('بيع')||idea.includes('shop')||idea.includes('store')){type='متجر إلكتروني';icon='🛒';features=['سلة مشتريات','بوابة دفع','إدارة منتجات','كوبونات خصم','تتبع الطلبات']}
+    else if(idea.includes('تطبيق')||idea.includes('app')){type='تطبيق موبايل';icon='📱';features=['Android APK','PWA','إشعارات','وضع أوفلاين','واجهة Touch']}
+    else if(idea.includes('تعليم')||idea.includes('دورات')||idea.includes('كورس')){type='منصة تعليمية';icon='📚';features=['نظام اشتراكات','مشغل فيديو','اختبارات','شهادات','لوحة تحكم']}
+    else if(idea.includes('مطعم')||idea.includes('طعام')||idea.includes('وجبات')){type='موقع مطعم';icon='🍽️';features=['قائمة طعام','نظام حجز','توصيل','قسيمة دفع','جداول المنيو']}
+    else if(idea.includes('بورتفوليو')||idea.includes('أعمال')||idea.includes('portfolio')){type='بورتفوليو شخصي';icon='🎨';features=['معرض أعمال','سيرة ذاتية','نموذج اتصال','تصفية بالمجال']}
+    wizardData.type=type;wizardData.icon=icon;wizardData.features=features;
+
+    setTimeout(()=>{
+        document.getElementById('ai-analysis-loading').classList.add('hidden');
+        const res=document.getElementById('ai-analysis-result');res.classList.remove('hidden');
+        res.innerHTML=`
+            <div class="space-y-4 animate-fade-up">
+                <div class="flex items-center gap-3 glass rounded-xl p-4"><span class="text-2xl">${icon}</span><div><p class="text-sm font-bold">نوع المشروع</p><p class="text-xs text-gray-400">${type}</p></div></div>
+                <div><p class="text-xs font-semibold text-gray-400 mb-2">الميزات المطلوبة:</p><div class="flex flex-wrap gap-1.5">${features.map(f=>'<span class="text-[10px] px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">'+f+'</span>').join('')}</div></div>
+                <div class="glass rounded-xl p-4"><p class="text-xs font-semibold text-gray-400 mb-2">التقنيات المقترحة:</p><div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500"><div>• React.js + Next.js</div><div>• Node.js Backend</div><div>• MongoDB Database</div><div>• Tailwind CSS</div></div></div>
+            </div>`;
+        document.getElementById('ai-analysis-actions').classList.remove('hidden');
+        lucide.createIcons();
+    },2500);
+}
+
+function startBuilding(){
+    const steps=['build-step-1','build-step-2','build-step-3','build-step-4','build-step-5'];
+    const labels=['تحليل الهيكل العام','توليد واجهة المستخدم','إنشاء الخلفية والقاعدة','تحسين الأداء والSEO','النشر على الإنترنت'];
+    steps.forEach((s,i)=>{const el=document.getElementById(s);el.className='flex items-center gap-3 text-sm text-gray-600';el.querySelector('div').className='w-6 h-6 rounded-full bg-white/5 flex items-center justify-center';el.querySelector('i').className=i===0?'w-3 h-3 animate-spin':'w-3 h-3';el.querySelector('i').setAttribute('data-lucide',i===0?'loader':'circle')});
+    lucide.createIcons();
+
+    steps.forEach((s,i)=>{
+        setTimeout(()=>{
+            const el=document.getElementById(s);el.className='flex items-center gap-3 text-sm text-brand-400';
+            el.querySelector('div').className='w-6 h-6 rounded-full bg-brand-500/15 flex items-center justify-center';
+            el.querySelector('i').className='w-3 h-3';el.querySelector('i').setAttribute('data-lucide','check');
+            lucide.createIcons();
+            if(i<steps.length-1){const next=document.getElementById(steps[i+1]);next.className='flex items-center gap-3 text-sm text-gray-500';next.querySelector('div').className='w-6 h-6 rounded-full bg-white/5 flex items-center justify-center';next.querySelector('i').className='w-3 h-3 animate-spin';next.querySelector('i').setAttribute('data-lucide','loader');lucide.createIcons()}
+        },(i+1)*1800);
+    });
+
+    setTimeout(()=>{
+        const slug=wizardData.name.replace(/\s+/g,'-').toLowerCase().replace(/[^a-z0-9\u0621-\u064A-]/g,'')+'-'+Date.now().toString(36);
+        const url=slug+'.ali-ai.app';
+        const project={id:Date.now().toString(),name:wizardData.name,description:wizardData.description,type:wizardData.type,icon:wizardData.icon,color:wizardData.color,lang:wizardData.lang,features:wizardData.features,idea:wizardData.idea,url:url,status:'live',createdAt:new Date().toISOString()};
+        const projects=getProjects();projects.push(project);saveProjects(projects);
+        wizardData.project=project;
+        document.getElementById('building-phase').classList.add('hidden');
+        document.getElementById('building-done').classList.remove('hidden');
+        document.getElementById('project-link').textContent='https://'+url;
+        lucide.createIcons();
+    },steps.length*1800+500);
+}
+
+function copyProjectLink(){const link=document.getElementById('project-link').textContent;navigator.clipboard?.writeText(link).then(()=>showToast('تم نسخ الرابط')).catch(()=>showToast('تم نسخ الرابط'))}
+
+// ===== Use Template =====
+function useTemplate(name,type){
+    switchPage('new-project');
+    setTimeout(()=>{
+        const ideaMap={'متجر عطور فاخر':'أريد إنشاء متجر إلكتروني لبيع العطور الفاخرة','موقع مطعم':'أريد موقع مطعم مع قائمة طعام ونظام حجوزات','صفحة هبوط SaaS':'أريد صفحة هبوط لمنتج SaaS تقني','متجر أزياء':'أريد متجر إلكتروني لبيع الملابس والأزياء','تطبيق لياقة':'أريد تطبيق لياقة بدنية لتتبع التمارين','بورتفوليو شخصي':'أريد موقع بورتفوليو شخصي لعرض أعمالي'};
+        document.getElementById('wiz-idea').value=ideaMap[name]||name;
+        document.getElementById('wiz-name').value=name;
+    },100);
+}
+
+// ===== Demo (Landing) =====
+function runDemo(){
+    const input=document.getElementById('demo-input');const result=document.getElementById('demo-result');const btn=document.getElementById('demo-btn');
+    const text=input.value.trim();if(!text){input.style.borderColor='#ef4444';input.focus();setTimeout(()=>input.style.borderColor='',2000);return}
+    btn.innerHTML='<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg>';btn.disabled=true;
+    result.classList.remove('hidden');result.style.opacity='0';result.style.transform='translateY(10px)';
+    setTimeout(()=>{
+        let type='موقع إلكتروني',icon='🌐',features=['صفحات متعددة','تصميم متجاوب','SEO'];
+        if(text.includes('متجر')||text.includes('بيع')){type='متجر إلكتروني';icon='🛒';features=['سلة مشتريات','دفع إلكتروني','إدارة منتجات']}
+        else if(text.includes('تطبيق')){type='تطبيق موبايل';icon='📱';features=['Android APK','PWA','إشعارات']}
+        result.innerHTML=`<div class="flex items-center gap-2 mb-3"><div class="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center"><i data-lucide="check" class="w-3 h-3 text-brand-500"></i></div><span class="text-sm font-semibold text-brand-400">تم التحليل</span></div><div class="flex items-center gap-2 mb-2"><span class="text-lg">${icon}</span><span class="font-semibold text-white text-sm">${type}</span></div><div class="flex flex-wrap gap-1.5 mb-2">${features.map(f=>'<span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">'+f+'</span>').join('')}</div><p class="text-gray-600 text-[11px]">⏱️ الوقت المتوقع: ~2 دقيقة</p><button onclick="openModal('register')" class="btn-primary w-full py-2.5 rounded-xl text-xs font-bold text-white mt-3">سجّل الآن وابدأ البناء</button>`;
+        result.style.opacity='1';result.style.transform='translateY(0)';result.style.transition='all 0.5s ease';
+        btn.innerHTML='<i data-lucide="wand-2" class="w-4 h-4"></i> أنشئ';btn.disabled=false;lucide.createIcons();
+    },2000);
+}
+document.getElementById('demo-input')?.addEventListener('keydown',e=>{if(e.key==='Enter')runDemo()});
+
+// ===== Auto-login check =====
+(function(){if(getSession())showApp()})();
+</script>
+</body>
+</html> 
