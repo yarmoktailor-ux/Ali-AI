@@ -984,29 +984,88 @@ function wizardPrev(step){wizardStep=step;document.querySelectorAll('.wizard-ste
 // Color preview
 document.getElementById('wiz-color')?.addEventListener('input',function(){document.getElementById('color-preview').textContent=this.value});
 
-function runAIAnalysis(){
-    const idea=wizardData.idea.toLowerCase();
-    let type='موقع إلكتروني',icon='🌐',features=['صفحات متعددة','تصميم متجاوب','نظام اتصال','SEO'];
-    if(idea.includes('متجر')||idea.includes('بيع')||idea.includes('shop')||idea.includes('store')){type='متجر إلكتروني';icon='🛒';features=['سلة مشتريات','بوابة دفع','إدارة منتجات','كوبونات خصم','تتبع الطلبات']}
-    else if(idea.includes('تطبيق')||idea.includes('app')){type='تطبيق موبايل';icon='📱';features=['Android APK','PWA','إشعارات','وضع أوفلاين','واجهة Touch']}
-    else if(idea.includes('تعليم')||idea.includes('دورات')||idea.includes('كورس')){type='منصة تعليمية';icon='📚';features=['نظام اشتراكات','مشغل فيديو','اختبارات','شهادات','لوحة تحكم']}
-    else if(idea.includes('مطعم')||idea.includes('طعام')||idea.includes('وجبات')){type='موقع مطعم';icon='🍽️';features=['قائمة طعام','نظام حجز','توصيل','قسيمة دفع','جداول المنيو']}
-    else if(idea.includes('بورتفوليو')||idea.includes('أعمال')||idea.includes('portfolio')){type='بورتفوليو شخصي';icon='🎨';features=['معرض أعمال','سيرة ذاتية','نموذج اتصال','تصفية بالمجال']}
-    wizardData.type=type;wizardData.icon=icon;wizardData.features=features;
+// أضف مفتاحك هنا
+const GEMINI_API_KEY = "AQ.Ab8RN6L3SKdkCCEP8cslYYUcAo7Ko6n66QTvs_jfhC9o0WXUgQ";
 
-    setTimeout(()=>{
-        document.getElementById('ai-analysis-loading').classList.add('hidden');
-        const res=document.getElementById('ai-analysis-result');res.classList.remove('hidden');
-        res.innerHTML=`
-            <div class="space-y-4 animate-fade-up">
-                <div class="flex items-center gap-3 glass rounded-xl p-4"><span class="text-2xl">${icon}</span><div><p class="text-sm font-bold">نوع المشروع</p><p class="text-xs text-gray-400">${type}</p></div></div>
-                <div><p class="text-xs font-semibold text-gray-400 mb-2">الميزات المطلوبة:</p><div class="flex flex-wrap gap-1.5">${features.map(f=>'<span class="text-[10px] px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">'+f+'</span>').join('')}</div></div>
-                <div class="glass rounded-xl p-4"><p class="text-xs font-semibold text-gray-400 mb-2">التقنيات المقترحة:</p><div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500"><div>• React.js + Next.js</div><div>• Node.js Backend</div><div>• MongoDB Database</div><div>• Tailwind CSS</div></div></div>
-            </div>`;
-        document.getElementById('ai-analysis-actions').classList.remove('hidden');
-        lucide.createIcons();
-    },2500);
+async function runAIAnalysis() {
+    const idea = wizardData.idea;
+    
+    // إظهار واجهة التحميل وتصفير النتائج السابقة
+    document.getElementById('ai-analysis-loading').classList.remove('hidden');
+    document.getElementById('ai-analysis-result').classList.add('hidden');
+    document.getElementById('ai-analysis-actions').classList.add('hidden');
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: `أنت خبير تطوير مواقع وتطبيقات. حلل الفكرة التالية: "${idea}". 
+                        أعطني النتيجة بتنسيق JSON حصراً كالتالي:
+                        { "type": "نوع الموقع", "icon": "إيموجي واحد مناسب", "features": ["ميزة1", "ميزة2", "ميزة3", "ميزة4"], "tech": ["تقنية1", "تقنية2"] }
+                        ملاحظة: لا تكتب أي شرح أو نصوص خارج أقواس الـ JSON.`
+                    }]
+                }]
+            })
+        });
+
+        const data = await response.json();
+        
+        // استخراج النص وتنظيفه من أي علامات Markdown مثل ```json
+        let rawText = data.candidates[0].content.parts[0].text;
+        let cleanText = rawText.replace(/```json|```/g, "").trim();
+        
+        const aiResponse = JSON.parse(cleanText);
+
+        // تحديث بيانات المشروع بالنتائج الحقيقية من Gemini
+        wizardData.type = aiResponse.type;
+        wizardData.icon = aiResponse.icon;
+        wizardData.features = aiResponse.features;
+
+        // عرض النتائج في الواجهة
+        displayAIResults(aiResponse);
+
+    } catch (error) {
+        console.error("خطأ في الاتصال بـ Gemini:", error);
+        showToast("فشل التحليل الذكي، تم استخدام بيانات افتراضية", "error");
+        
+        // نتائج افتراضية في حال حدوث خطأ (Fallback)
+        displayAIResults({
+            type: "مشروع رقمي",
+            icon: "🚀",
+            features: ["واجهة مستخدم عصرية", "أداء سريع", "متوافق مع الجوال", "لوحة تحكم"]
+        });
+    }
 }
+
+// دالة عرض النتائج (يجب أن تكون موجودة لتعمل الدالة أعلاه)
+function displayAIResults(res) {
+    document.getElementById('ai-analysis-loading').classList.add('hidden');
+    const resultDiv = document.getElementById('ai-analysis-result');
+    resultDiv.classList.remove('hidden');
+    
+    resultDiv.innerHTML = `
+        <div class="space-y-4 animate-fade-up">
+            <div class="flex items-center gap-3 glass rounded-xl p-4">
+                <span class="text-2xl">${res.icon}</span>
+                <div>
+                    <p class="text-sm font-bold text-brand-400">تحليل Ali AI الذكي</p>
+                    <p class="text-xs text-white">${res.type}</p>
+                </div>
+            </div>
+            <div>
+                <p class="text-xs font-semibold text-gray-400 mb-2">الميزات التي سيتم بناؤها:</p>
+                <div class="flex flex-wrap gap-1.5">
+                    ${res.features.map(f => `<span class="text-[10px] px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">${f}</span>`).join('')}
+                </div>
+            </div>
+        </div>`;
+    document.getElementById('ai-analysis-actions').classList.remove('hidden');
+    lucide.createIcons();
+}
+
 
 function startBuilding(){
     const steps=['build-step-1','build-step-2','build-step-3','build-step-4','build-step-5'];
